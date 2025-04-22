@@ -1,0 +1,96 @@
+name: Release VS Code Extension
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version_changed: ${{ steps.check_version.outputs.version_changed }}
+      version: ${{ steps.check_version.outputs.version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+      
+      - name: Check if package.json version has changed
+        id: check_version
+        run: |
+          git diff HEAD^ HEAD --name-only | grep "package.json" || echo "package.json not changed"
+          
+          if git diff HEAD^ HEAD --name-only | grep "package.json"; then
+            # Get current version
+            CURRENT_VERSION=$(node -p "require('./package.json').version")
+            
+            # Get previous version
+            git checkout HEAD^ package.json
+            PREVIOUS_VERSION=$(node -p "require('./package.json').version")
+            git checkout HEAD package.json
+            
+            if [ "$CURRENT_VERSION" != "$PREVIOUS_VERSION" ]; then
+              echo "Version changed from $PREVIOUS_VERSION to $CURRENT_VERSION"
+              echo "version_changed=true" >> $GITHUB_OUTPUT
+              echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+            else
+              echo "Version unchanged: $CURRENT_VERSION"
+              echo "version_changed=false" >> $GITHUB_OUTPUT
+              echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "package.json not modified, skipping version check"
+            echo "version_changed=false" >> $GITHUB_OUTPUT
+          fi
+  
+  build-and-release:
+    needs: check-version
+    if: ${{ needs.check-version.outputs.version_changed == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Compile extension
+        run: npm run compile
+      
+      - name: Install vsce
+        run: npm install -g @vscode/vsce
+      
+      - name: Package extension
+        run: vsce package
+        
+      - name: Get VSIX filename
+        id: get_vsix
+        run: echo "vsix_file=$(ls *.vsix)" >> $GITHUB_OUTPUT
+      
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ needs.check-version.outputs.version }}
+          release_name: Release v${{ needs.check-version.outputs.version }}
+          draft: false
+          prerelease: false
+      
+      - name: Upload VSIX to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./${{ steps.get_vsix.outputs.vsix_file }}
+          asset_name: ${{ steps.get_vsix.outputs.vsix_file }}
+          asset_content_type: application/octet-stream
