@@ -3,7 +3,7 @@
   "name": "toggle-gitignore-files",
   "displayName": "Toggle Git Ignore Files",
   "description": "Toggle Git Ignore Files in Explorer",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "engines": {
     "vscode": "^1.98.1"
   },
@@ -23,6 +23,16 @@
         "title": "Toggle Git Ignore Files"
       }
     ],
+    "configuration": {
+      "title": "Toggle Git Ignore Files",
+      "properties": {
+        "toggleGitIgnore.showInContextMenu": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the Toggle Git Ignore Files command in the Explorer context menu"
+        }
+      }
+    },
     "keybindings": [
       {
         "command": "toggle-gitignore-files.toggleGitIgnore",
@@ -35,7 +45,8 @@
       "explorer/context": [
         {
           "command": "toggle-gitignore-files.toggleGitIgnore",
-          "group": "navigation"
+          "group": "z_commands",
+          "when": "config.toggleGitIgnore.showInContextMenu"
         }
       ]
     }
@@ -44,19 +55,14 @@
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile && npm run lint",
-    "lint": "eslint src",
-    "test": "vscode-test"
+    "lint": "eslint src"
   },
   "devDependencies": {
-    "@types/vscode": "^1.98.1",
-    "@types/mocha": "^10.0.10",
     "@types/node": "20.x",
+    "@types/vscode": "^1.98.1",
     "@typescript-eslint/eslint-plugin": "^8.28.0",
     "@typescript-eslint/parser": "^8.28.0",
     "eslint": "^9.23.0",
-    "typescript": "^5.8.2",
-    "@vscode/test-cli": "^0.0.10",
-    "@vscode/test-electron": "^2.4.1"
+    "typescript": "^5.8.2"
   }
 }
