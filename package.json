@@ -3,7 +3,7 @@
   "name": "toggle-gitignore-files",
   "displayName": "Toggle Git Ignore Files",
   "description": "Toggle Git Ignore Files in Explorer",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "engines": {
     "vscode": "^1.98.1"
   },
